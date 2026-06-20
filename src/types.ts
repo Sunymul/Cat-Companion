@@ -40,7 +40,7 @@ export type CatState =
 export interface CodeFile {
   name: string;
   path: string;
-  language: 'csharp' | 'rust' | 'json' | 'xaml' | 'markdown' | 'toml';
+  language: 'csharp' | 'rust' | 'json' | 'xaml' | 'markdown' | 'toml' | 'python' | 'text';
   content: string;
 }
 
