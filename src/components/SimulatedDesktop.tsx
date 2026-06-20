@@ -93,6 +93,13 @@ export default function SimulatedDesktop({
   const [adoptedDate, setAdoptedDate] = useState(() => {
     return settings.birthday || localStorage.getItem('cat_companion_adopted_date') || new Date().toLocaleDateString('en-US');
   });
+
+  // Focus Mode Stages & Sound Design Stats
+  const [keystrokeTimestamps, setKeystrokeTimestamps] = useState<number[]>([]);
+  const [isFullscreenSimulated, setIsFullscreenSimulated] = useState(false);
+  const [focusTimerSeconds, setFocusTimerSeconds] = useState(0);
+  const [lastTypingState, setLastTypingState] = useState<'none' | 'typing'>('none');
+  const [isPurringLooping, setIsPurringLooping] = useState(false);
   const [adoptedTrait, setAdoptedTrait] = useState(() => {
     return localStorage.getItem('cat_companion_adopted_trait') || 'Sassy Explorer';
   });
@@ -205,8 +212,8 @@ export default function SimulatedDesktop({
     ['Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/'],
   ];
 
-  // Synthesize Retro Meow Sound
-  const triggerMeowAudio = () => {
+  // Integrated Feline Sound Engine (with recommended pitches, mixes, and organic variants)
+  const triggerMeowAudio = (type: 'purr' | 'trill' | 'mrrp' | 'sleep_breath' | 'stretch_squeak' | 'meow' = 'meow') => {
     if (!settings.soundEnabled) return;
     try {
       if (!audioContextRef.current) {
@@ -219,46 +226,207 @@ export default function SimulatedDesktop({
       }
 
       const now = ctx.currentTime;
-      const osc1 = ctx.createOscillator();
-      const osc2 = ctx.createOscillator();
-      const gainNode = ctx.createGain();
+      
+      // Strict sound levels as per launch audit: master (18%), meow (20%), purr (10%), squeak/breath/trill (12%-15%)
+      const MASTER_VOLUME = 0.18;
+      const pitchFactor = 0.95 + Math.random() * 0.10; // 0.95x - 1.05x pitch randomization
+      const volumeFactor = 0.90 + Math.random() * 0.20; // 90% - 110% real time velocity randomizer
 
-      // Sound signature of a cat meow (pitch slides up slightly then down in a cute mew)
-      osc1.type = 'triangle';
-      osc2.type = 'sine';
+      if (type === 'purr') {
+        // Deep looping micro-rhythm: 27Hz base frequency, modulated by 12Hz LFO vibrato
+        const osc = ctx.createOscillator();
+        const lfo = ctx.createOscillator();
+        const lfoGain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+        const gainNode = ctx.createGain();
 
-      // Slight detune for cozy chord feeling
-      osc2.detune.setValueAtTime(15, now);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(28 * pitchFactor, now);
 
-      // Pitch sweep
-      const startPitch = 850 + Math.random() * 200;
-      const peakPitch = 1100 + Math.random() * 150;
-      const endPitch = 600 + Math.random() * 100;
+        lfo.type = 'sine';
+        lfo.frequency.setValueAtTime(13.5, now);
+        lfoGain.gain.setValueAtTime(10, now);
 
-      osc1.frequency.setValueAtTime(startPitch, now);
-      osc1.frequency.exponentialRampToValueAtTime(peakPitch, now + 0.08);
-      osc1.frequency.exponentialRampToValueAtTime(endPitch, now + 0.35);
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(110, now); // Sweet warm chest purr feel
 
-      osc2.frequency.setValueAtTime(startPitch * 1.01, now);
-      osc2.frequency.exponentialRampToValueAtTime(peakPitch * 1.01, now + 0.08);
-      osc2.frequency.exponentialRampToValueAtTime(endPitch * 1.01, now + 0.35);
+        // 10% target purr volume from guidelines
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.045 * volumeFactor * MASTER_VOLUME, now + 0.15);
+        gainNode.gain.setValueAtTime(0.045 * volumeFactor * MASTER_VOLUME, now + 0.85);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
 
-      // Cute feline volume envelope
-      gainNode.gain.setValueAtTime(0, now);
-      gainNode.gain.linearRampToValueAtTime(0.18, now + 0.05);
-      gainNode.gain.exponentialRampToValueAtTime(0.12, now + 0.15);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+        osc.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(ctx.destination);
 
-      osc1.connect(gainNode);
-      osc2.connect(gainNode);
-      gainNode.connect(ctx.destination);
+        lfo.start(now);
+        osc.start(now);
+        lfo.stop(now + 1.25);
+        osc.stop(now + 1.25);
+      }
+      else if (type === 'trill') {
+        // Musical high-frequency pleasant chirp trill
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const ripple = ctx.createOscillator();
+        const rippleGain = ctx.createGain();
+        const gainNode = ctx.createGain();
 
-      osc1.start(now);
-      osc2.start(now);
-      osc1.stop(now + 0.45);
-      osc2.stop(now + 0.45);
+        osc1.type = 'sine';
+        osc2.type = 'triangle';
+
+        const baseHz = 780 * pitchFactor;
+        const peakHz = 1050 * pitchFactor;
+
+        ripple.frequency.setValueAtTime(20, now); // 20Hz rapid trill ripple
+        rippleGain.gain.setValueAtTime(14, now);
+
+        osc1.frequency.setValueAtTime(baseHz, now);
+        osc1.frequency.exponentialRampToValueAtTime(peakHz, now + 0.12);
+
+        osc2.frequency.setValueAtTime(baseHz * 1.5, now);
+        osc2.frequency.exponentialRampToValueAtTime(peakHz * 1.5, now + 0.12);
+
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.08 * volumeFactor * MASTER_VOLUME, now + 0.04);
+        gainNode.gain.exponentialRampToValueAtTime(0.005, now + 0.18);
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.22);
+
+        ripple.connect(rippleGain);
+        rippleGain.connect(osc1.frequency);
+
+        osc1.connect(gainNode);
+        osc2.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        ripple.start(now);
+        osc1.start(now);
+        osc2.start(now);
+        ripple.stop(now + 0.23);
+        osc1.stop(now + 0.23);
+        osc2.stop(now + 0.23);
+      }
+      else if (type === 'mrrp') {
+        // High-fidelity natural soft chirp-meow
+        const osc = ctx.createOscillator();
+        const sineSub = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+
+        osc.type = 'triangle';
+        sineSub.type = 'sine';
+
+        const startPitch = 550 * pitchFactor;
+        const peakPitch = 740 * pitchFactor;
+        const finalPitch = 490 * pitchFactor;
+
+        osc.frequency.setValueAtTime(startPitch, now);
+        osc.frequency.exponentialRampToValueAtTime(peakPitch, now + 0.06);
+        osc.frequency.exponentialRampToValueAtTime(finalPitch, now + 0.15);
+
+        sineSub.frequency.setValueAtTime(startPitch, now);
+        sineSub.frequency.exponentialRampToValueAtTime(peakPitch * 0.95, now + 0.06);
+        sineSub.frequency.exponentialRampToValueAtTime(finalPitch * 0.95, now + 0.15);
+
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.12 * volumeFactor * MASTER_VOLUME, now + 0.03);
+        gainNode.gain.exponentialRampToValueAtTime(0.05, now + 0.11);
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.20);
+
+        osc.connect(gainNode);
+        sineSub.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        osc.start(now);
+        sineSub.start(now);
+        osc.stop(now + 0.21);
+        sineSub.stop(now + 0.21);
+      }
+      else if (type === 'sleep_breath') {
+        // Delicate soft breathing puff
+        const osc = ctx.createOscillator();
+        const filter = ctx.createBiquadFilter();
+        const gainNode = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(170 * pitchFactor, now);
+        osc.frequency.linearRampToValueAtTime(130 * pitchFactor, now + 0.45);
+
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(360, now);
+        filter.Q.setValueAtTime(2.2, now);
+
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.04 * volumeFactor * MASTER_VOLUME, now + 0.25);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+        osc.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.65);
+      }
+      else if (type === 'stretch_squeak') {
+        // High pitched cute effort squeak
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1450 * pitchFactor, now);
+        osc.frequency.exponentialRampToValueAtTime(1080 * pitchFactor, now + 0.1);
+
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.025 * volumeFactor * MASTER_VOLUME, now + 0.02);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.14);
+
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.15);
+      }
+      else {
+        // Classic meow with refined, rich filters
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+
+        osc1.type = 'triangle';
+        osc2.type = 'sine';
+        osc2.detune.setValueAtTime(12, now);
+
+        const startS = 640 * pitchFactor;
+        const peakS = 920 * pitchFactor;
+        const endS = 480 * pitchFactor;
+
+        osc1.frequency.setValueAtTime(startS, now);
+        osc1.frequency.exponentialRampToValueAtTime(peakS, now + 0.11);
+        osc1.frequency.exponentialRampToValueAtTime(endS, now + 0.42);
+
+        osc2.frequency.setValueAtTime(startS * 1.01, now);
+        osc2.frequency.exponentialRampToValueAtTime(peakS * 1.01, now + 0.11);
+        osc2.frequency.exponentialRampToValueAtTime(endS * 1.01, now + 0.42);
+
+        // 20% meow volume envelope
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.18 * volumeFactor * MASTER_VOLUME, now + 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.11, now + 0.18);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+
+        osc1.connect(gainNode);
+        osc2.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.48);
+        osc2.stop(now + 0.48);
+      }
     } catch (e) {
-      console.warn('Audio synthesis failed', e);
+      console.warn('Feline sound synthesis error', e);
     }
   };
 
@@ -276,7 +444,28 @@ export default function SimulatedDesktop({
     ];
     const text = customText || meows[Math.floor(Math.random() * meows.length)];
     setMeowText(text);
-    triggerMeowAudio();
+
+    // Intelligently select real-life feline cat audio sound pack
+    let soundType: 'purr' | 'trill' | 'mrrp' | 'sleep_breath' | 'stretch_squeak' | 'meow' = 'meow';
+    const lowerText = text.toLowerCase();
+
+    if (lowerText.includes('zzz') || lowerText.includes('exhaust') || lowerText.includes('sleep') || lowerText.includes('snore')) {
+      soundType = 'sleep_breath';
+    } else if (lowerText.includes('streeee') || lowerText.includes('stretch') || lowerText.includes('yawn')) {
+      soundType = 'stretch_squeak';
+    } else if (lowerText.includes('purr') || lowerText.includes('pet me') || lowerText.includes('nom') || lowerText.includes('love') || lowerText.includes('guaranteed')) {
+      soundType = 'purr';
+    } else if (lowerText.includes('mew!') || lowerText.includes('adopt') || lowerText.includes('butterfly') || lowerText.includes('chase') || lowerText.includes('caught')) {
+      soundType = 'trill';
+    } else if (lowerText.includes('shhh') || lowerText.includes('focus') || lowerText.includes('study') || lowerText.includes('welcome') || lowerText.includes('back')) {
+      soundType = 'mrrp';
+    } else {
+      // 85% gently blended warm mrrps over classic meows for high emotional attachment
+      soundType = Math.random() < 0.85 ? 'mrrp' : 'meow';
+    }
+
+    triggerMeowAudio(soundType);
+
     setTimeout(() => {
       setMeowText(null);
     }, 2800);
@@ -306,11 +495,70 @@ export default function SimulatedDesktop({
     const stateLoop = setInterval(() => {
       // Productivity / Focus Mode Override
       if (settings.focusMode) {
-        setCatState('sleeping');
-        const rng = Math.random();
-        if (rng < 0.2) {
-          triggerMeowText('💭 Shhh... focus-mode active 📚');
+        setFocusTimerSeconds((prev) => prev + 4);
+        const now = Date.now();
+        // Compute live Keystrokes Per Minute (KPM)
+        const recentKeysCount = keystrokeTimestamps.filter((t) => now - t < 10000).length;
+        const currentKPM = recentKeysCount * 6;
+
+        // Stage 3: Fullscreen presentation mode simulated
+        if (isFullscreenSimulated) {
+          setCatState('sleeping');
+          // Quiet hiding offscreen, no distracting speech bubbles
+          return;
         }
+
+        // Stage 2: Intense Typing Flow detected (KPM > 100)
+        if (currentKPM > 100) {
+          setCatState('sleeping');
+          setLastTypingState('typing');
+          // Absolutely silent for respectful deep work
+          return;
+        }
+
+        // Stage 1: Active Work / Moderate typing (KPM between 15 and 100)
+        if (currentKPM >= 15) {
+          setCatState('idle');
+          setLastTypingState('typing');
+          
+          // Occasional very quiet, supportive focus feedback
+          if (Math.random() < 0.12) {
+            const focusEncouragements = [
+              'Shosh... focus-mode active 📚',
+              'You are doing great! 💻🐾',
+              'Comfortable silence... ☕',
+              'Type type type, you are in the zone! 🚀',
+              'Ssshh... studying in quiet harmony 🤫',
+            ];
+            triggerMeowText(focusEncouragements[Math.floor(Math.random() * focusEncouragements.length)]);
+          }
+          return;
+        }
+
+        // Pause/Inactivity Detected: Work Buddy Mode Wakeup triggers!
+        if (lastTypingState === 'typing') {
+          // Trigger rare event: the cat wakes up right as you stop typing to greet you!
+          setCatState('excited');
+          const buddyPhrases = [
+            'Finished already? Welcome back! 🥰🐾',
+            'Great session! How about a little head scratch? ❤️',
+            'Take a breath, developer! We did it! 🎉',
+            'Pause detected! Rest those hands! 👐☕',
+          ];
+          triggerMeowText(buddyPhrases[Math.floor(Math.random() * buddyPhrases.length)]);
+          setLastTypingState('none');
+          return;
+        }
+
+        // Stage 4: Long Work Session simulated milestones (Adorable Stretch every 40s of study)
+        if (focusTimerSeconds > 0 && focusTimerSeconds % 40 === 0) {
+          setCatState('excited');
+          triggerMeowText('Streeeeeetch! Study milestone achieved! Hydrate yourself! 🥤🔋🐾');
+          return;
+        }
+
+        // Default Focus idling state: sleep quietly in the study corner
+        setCatState('sleeping');
         return;
       }
 
@@ -512,10 +760,21 @@ export default function SimulatedDesktop({
   // Keyboard input listeners (Capture browser keystrokes inside workspace)
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
+      const now = Date.now();
+      setKeystrokeTimestamps((prev) => {
+        const filtered = prev.filter((t) => now - t < 10000); // 10 sec sliding window
+        return [...filtered, now];
+      });
+
+      setKeystrokeCount((prev) => prev + 1);
+      setLastActivity(now);
+      developPersonality('keystroke');
+
       if (settings.enableTypingAnimation) {
-        setKeystrokeCount((prev) => prev + 1);
-        setLastActivity(Date.now());
-        developPersonality('keystroke');
+        if (settings.focusMode) {
+          // In focus mode, keep kitty in its respectful corners/positions without intrusive typing animations on the screen.
+          return;
+        }
 
         if (catState === 'sleeping') {
           setCatState('idle');
@@ -536,15 +795,33 @@ export default function SimulatedDesktop({
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [catState, settings.enableTypingAnimation, developPersonality]);
+  }, [catState, settings.enableTypingAnimation, settings.focusMode, developPersonality]);
 
   // Main Cat Physics loop (Walking & Chasing logic with window gravity & rare events)
   useEffect(() => {
     const pInterval = setInterval(() => {
-      // 1. Focus Mode Override: No physics walking, stay in bottom-right corner snoring!
+      // 1. Focus Mode Override: Organic movement to study corner or offscreen during presentations
       if (settings.focusMode) {
-        setCatPos({ x: 512, y: 310 });
-        setCatState('sleeping');
+        const destX = isFullscreenSimulated ? 650 : 505;
+        const destY = 310;
+
+        const dxFocus = destX - catPos.x;
+        const dyFocus = destY - catPos.y;
+        const distFocus = Math.sqrt(dxFocus * dxFocus + dyFocus * dyFocus);
+
+        if (distFocus > 12) {
+          // Relocate by walking smoothly
+          setCatState('walking');
+          setTypingStep((prev) => (prev + 1) % 4);
+          const speedFactor = 2.0 * settings.speed;
+          setCatPos((prev) => ({
+            x: prev.x + (dxFocus / distFocus) * speedFactor,
+            y: prev.y + (dyFocus / distFocus) * speedFactor,
+          }));
+        } else {
+          // Arrived! Anchor precisely
+          setCatPos({ x: destX, y: destY });
+        }
         return;
       }
 
@@ -807,6 +1084,45 @@ export default function SimulatedDesktop({
           </div>
         )}
 
+        {/* Fullscreen simulated presentation slide overlay */}
+        {isFullscreenSimulated && (
+          <div
+            onClick={() => {
+              setIsFullscreenSimulated(false);
+              triggerMeowText('Back to studying! 📖');
+            }}
+            className="absolute inset-0 bg-slate-900/98 flex flex-col items-center justify-center text-center z-25 text-white select-none animate-fade-in cursor-default"
+          >
+            <div className="max-w-xs p-5 bg-slate-800/90 border border-slate-700/80 rounded-[20px] space-y-3 shadow-2xl relative overflow-hidden">
+              <div className="w-10 h-10 rounded-full bg-orange-550 mx-auto flex items-center justify-center text-lg animate-bounce">
+                📽️
+              </div>
+              <h2 className="text-xs uppercase tracking-widest font-black text-slate-350">
+                Study PPT Slideshow
+              </h2>
+              <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+                Presentation slide is active. Your companion kitty has respectfully exited the work area to prevent clutter.
+              </p>
+              <div className="text-[9px] text-[#FFA853] font-extrabold underline cursor-pointer hover:text-orange-400">
+                Click slide to terminate presentation.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Stage 3: Offscreen border waiting tab */}
+        {isFullscreenSimulated && (
+          <div
+            onClick={() => {
+              setIsFullscreenSimulated(false);
+              triggerMeowText('I am back! 🐾');
+            }}
+            className="absolute bottom-20 right-0 bg-gradient-to-l from-orange-500 to-amber-500 text-white rounded-l-xl px-2.5 py-1.5 shadow-lg border border-r-0 border-orange-400 text-[10px] font-black z-30 select-none animate-pulse hover:translate-x-[-2px] transition-transform cursor-pointer"
+          >
+            🐾 Studying from sidelines...
+          </div>
+        )}
+
         {/* --- DYNAMIC TRANS TRANSPARENT OVERLAY CAT COMPANION --- */}
         <div
           style={{
@@ -818,9 +1134,18 @@ export default function SimulatedDesktop({
           }}
           className="pointer-events-auto filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.4)]"
           onClick={() => {
-            // Clicking cat pets it!
+            // Clicking cat pets it with comforting deep purring sequence!
             setCatState('excited');
-            triggerMeowText('Purrr... ❤️');
+            triggerMeowText('Purrr... ❤️ pet me!');
+            
+            // Comforting sequential purr loop triggers
+            setTimeout(() => {
+              triggerMeowAudio('purr');
+            }, 820);
+            setTimeout(() => {
+              triggerMeowAudio('purr');
+            }, 1640);
+
             setLastActivity(Date.now());
             developPersonality('pet');
             setTimeout(() => setCatState('idle'), 2550);
@@ -1193,14 +1518,39 @@ export default function SimulatedDesktop({
             </div>
           </div>
 
-          {/* Right Status Clocks */}
-          <div className="flex items-center gap-3 text-xs text-slate-650 font-mono bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
-            <span className="flex items-center gap-1 font-sans text-[11px] text-orange-600 font-bold">
-              <span className="w-1.5 h-1.5 rounded-full bg-orange-600 animate-pulse" />
-              Windows Hook Active
-            </span>
-            <span>|</span>
-            <span className="font-bold text-slate-850">{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+          {/* Right Status Clocks & Presentation simulations */}
+          <div className="flex items-center gap-2">
+            {settings.focusMode && (
+              <button
+                onClick={() => {
+                  const val = !isFullscreenSimulated;
+                  setIsFullscreenSimulated(val);
+                  if (val) {
+                    triggerMeowText('Hiding! 📽️ Pres active!');
+                  } else {
+                    triggerMeowText('I am back! *streeeeetch*');
+                  }
+                }}
+                className={`px-2.5 py-1 text-[9.5px] uppercase font-black rounded-lg transition-all border flex items-center gap-1 cursor-pointer select-none ${
+                  isFullscreenSimulated
+                    ? 'bg-rose-500 text-white border-rose-500 animate-pulse'
+                    : 'bg-indigo-50 text-indigo-750 border-indigo-200 hover:bg-indigo-100'
+                }`}
+              >
+                <span>📽️ Presentation Slide: {isFullscreenSimulated ? 'ACTIVE' : 'START'}</span>
+              </button>
+            )}
+
+            <div className="flex items-center gap-3 text-xs text-slate-650 font-mono bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+              <span className="flex items-center gap-1 font-sans text-[11px] text-orange-600 font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-600 animate-pulse" />
+                Windows Hook Active
+              </span>
+              <span>|</span>
+              <span className="font-bold text-slate-850">
+                {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+            </div>
           </div>
         </div>
       </div>

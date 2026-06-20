@@ -23,6 +23,26 @@ export default function CatSprite({
   const [tailAngle, setTailAngle] = useState(0);
   const [breathScale, setBreathScale] = useState(1);
 
+  // Micro-behaviors: Ear twitches
+  const [leftEarTwitch, setLeftEarTwitch] = useState(false);
+  const [rightEarTwitch, setRightEarTwitch] = useState(false);
+
+  useEffect(() => {
+    if (state === 'sleeping') return;
+    const twitchInterval = setInterval(() => {
+      const rng = Math.random();
+      if (rng < 0.25) {
+        setLeftEarTwitch(true);
+        setTimeout(() => setLeftEarTwitch(false), 150);
+      } else if (rng < 0.50) {
+        setRightEarTwitch(true);
+        setTimeout(() => setRightEarTwitch(false), 150);
+      }
+    }, 3700);
+
+    return () => clearInterval(twitchInterval);
+  }, [state]);
+
   // Animate tail in background
   useEffect(() => {
     let animationId: number;
@@ -340,24 +360,36 @@ export default function CatSprite({
           transition: 'transform 0.08s ease-out'
         }}>
           {/* Left Ear */}
-          <polygon
-            points="4,3 9,8 4,11"
-            fill={colors.fur}
-          />
-          <polygon
-            points="4.8,4.5 8,8 4.8,10.2"
-            fill={colors.ears}
-          />
-
+          <g style={{
+            transform: leftEarTwitch ? 'rotate(-14deg)' : 'none',
+            transformOrigin: '9px 8px',
+            transition: 'transform 0.08s ease-in-out'
+          }}>
+            <polygon
+              points="4,3 9,8 4,11"
+              fill={colors.fur}
+            />
+            <polygon
+              points="4.8,4.5 8,8 4.8,10.2"
+              fill={colors.ears}
+            />
+          </g>
+          
           {/* Right Ear */}
-          <polygon
-            points="20,3 15,8 20,11"
-            fill={colors.fur}
-          />
-          <polygon
-            points="19.2,4.5 16,8 19.2,10.2"
-            fill={colors.ears}
-          />
+          <g style={{
+            transform: rightEarTwitch ? 'rotate(14deg)' : 'none',
+            transformOrigin: '15px 8px',
+            transition: 'transform 0.08s ease-in-out'
+          }}>
+            <polygon
+              points="20,3 15,8 20,11"
+              fill={colors.fur}
+            />
+            <polygon
+              points="19.2,4.5 16,8 19.2,10.2"
+              fill={colors.ears}
+            />
+          </g>
 
           {/* Head Shape */}
           <ellipse cx="12" cy="10" rx="7.5" ry="5.8" fill={colors.fur} />
@@ -487,11 +519,11 @@ export default function CatSprite({
                   r="1.2"
                   fill={colors.eyes}
                 />
-                {/* Pupil - classic vertical dark cat slit */}
+                {/* Pupil - dynamic organic real-cat dilating slit */}
                 <ellipse
                   cx={9 + (settings.enableTracking ? Math.cos(lookAngle) * lookStrength * 0.8 : 0)}
                   cy={9.5 + (settings.enableTracking ? Math.sin(lookAngle) * lookStrength * 0.6 : 0)}
-                  rx="0.4"
+                  rx="0.45"
                   ry="1.1"
                   fill="#111111"
                 />
@@ -514,7 +546,7 @@ export default function CatSprite({
                 <ellipse
                   cx={15 + (settings.enableTracking ? Math.cos(lookAngle) * lookStrength * 0.8 : 0)}
                   cy={9.5 + (settings.enableTracking ? Math.sin(lookAngle) * lookStrength * 0.6 : 0)}
-                  rx="0.4"
+                  rx="0.45"
                   ry="1.1"
                   fill="#111111"
                 />
