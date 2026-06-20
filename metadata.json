@@ -1,0 +1,6 @@
+{
+  "name": "Desktop Cat Companion",
+  "description": "An interactive desktop cat companion simulator and code workstation for WinUI/WPF.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
