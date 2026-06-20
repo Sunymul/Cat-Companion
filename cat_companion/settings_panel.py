@@ -7,16 +7,19 @@ from PyQt6.QtGui import QFont, QIcon
 
 class SettingsPanel(QWidget):
     settings_changed = pyqtSignal() # Emitted whenever variables are updated
+    pet_triggered = pyqtSignal()
+    feed_triggered = pyqtSignal()
 
-    def __init__(self, settings):
+    def __init__(self, settings, personality_engine=None):
         super().__init__()
         self.settings = settings
+        self.personality_engine = personality_engine
         self.init_ui()
 
     def init_ui(self):
         """Initializes a visually polished, dark-slate styled Settings Dashboard."""
-        self.setWindowTitle("Companion settings Dashboard")
-        self.setFixedSize(360, 485)
+        self.setWindowTitle("Companion Settings Dashboard")
+        self.setFixedSize(360, 560)
         
         # Apply structured stylesheet matching deep slate styles
         self.setStyleSheet("""
@@ -203,6 +206,54 @@ class SettingsPanel(QWidget):
         sys_group.setLayout(sys_layout)
         layout.addWidget(sys_group)
 
+        # Pet Caring & Personality Development Group
+        pet_group = QGroupBox("PET CARING & PERSONALITY")
+        pet_layout = QVBoxLayout()
+
+        dominant_text = "Balanced (Unlocking...)"
+        if self.personality_engine:
+            dominant_text = self.personality_engine.dominant_trait.upper().replace("_", " ")
+
+        self.personality_lbl = QLabel(f"Dominant Trait: {dominant_text}")
+        self.personality_lbl.setStyleSheet("color: #38bdf8; font-weight: bold; font-size: 11px;")
+        pet_layout.addWidget(self.personality_lbl)
+
+        help_interaction = QLabel("Interact to develop her personality over time!")
+        help_interaction.setStyleSheet("color: #64748b; font-size: 10px;")
+        pet_layout.addWidget(help_interaction)
+
+        btn_row = QHBoxLayout()
+        self.pet_btn = QPushButton("❤️ Pet Cat")
+        self.pet_btn.clicked.connect(self._on_pet_clicked)
+        self.pet_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #ec4899;
+                color: white;
+            }
+            QPushButton:hover {
+                background-color: #db2777;
+            }
+        """)
+        
+        self.feed_btn = QPushButton("🐟 Feed Fish")
+        self.feed_btn.clicked.connect(self._on_feed_clicked)
+        self.feed_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #0ea5e9;
+                color: white;
+            }
+            QPushButton:hover {
+                background-color: #0284c7;
+            }
+        """)
+        
+        btn_row.addWidget(self.pet_btn)
+        btn_row.addWidget(self.feed_btn)
+        pet_layout.addLayout(btn_row)
+        
+        pet_group.setLayout(pet_layout)
+        layout.addWidget(pet_group)
+
         layout.addSpacing(10)
 
         # Footer close action buttons
@@ -214,6 +265,19 @@ class SettingsPanel(QWidget):
         layout.addLayout(btn_layout)
 
         self.setLayout(layout)
+
+    def _on_pet_clicked(self):
+        self.pet_triggered.emit()
+        self.update_personality_display()
+
+    def _on_feed_clicked(self):
+        self.feed_triggered.emit()
+        self.update_personality_display()
+
+    def update_personality_display(self):
+        if self.personality_engine:
+            dominant_text = self.personality_engine.dominant_trait.upper().replace("_", " ")
+            self.personality_lbl.setText(f"Dominant Trait: {dominant_text}")
 
     def _on_size_slider_changed(self, val):
         self.settings.size = val

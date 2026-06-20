@@ -43,10 +43,14 @@ def main():
     cat_manager.spawn_cat()
 
     # 4. Construct settings controller pipeline
-    settings_panel = SettingsPanel(settings)
+    initial_cat = cat_manager.cats[0] if cat_manager.cats else None
+    initial_personality = initial_cat.personality if initial_cat else None
+    settings_panel = SettingsPanel(settings, initial_personality)
     
     # Synchronize sliders to active cats immediately on UI adjustments
     settings_panel.settings_changed.connect(cat_manager.update_all_settings)
+    settings_panel.pet_triggered.connect(lambda: cat_manager.pet_all())
+    settings_panel.feed_triggered.connect(lambda: cat_manager.feed_all())
 
     # 5. Populate OS Notification System Tray Menus
     tray = CatTrayIcon(cat_manager, settings_panel)

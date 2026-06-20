@@ -22,6 +22,11 @@ export interface CompanionSettings {
   personality: CatPersonality;
   chaseMode: boolean;
   soundEnabled: boolean;
+  // PREMIUM COMPANION FIELDS
+  catName?: string;
+  birthday?: string;
+  equippedAccessory?: 'none' | 'santa' | 'wizard' | 'sunglasses' | 'bowtie' | 'wings';
+  focusMode?: boolean;
 }
 
 export type CatState =

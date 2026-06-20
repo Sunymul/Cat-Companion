@@ -388,6 +388,60 @@ export default function SettingsPanel({
         </div>
       </div>
 
+      {/* Premium Collectibles & Focus Utilities */}
+      <div className="space-y-4 pt-2 border-t border-slate-100">
+        <label className="text-xs font-black text-slate-450 uppercase tracking-widest flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-orange-500" />
+          Premium Outfits & Focus
+        </label>
+
+        <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/50">
+          {/* Outfits Accessories selector */}
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-bold text-slate-500 block">Equipped Costume / Hats</span>
+            <select
+              value={settings.equippedAccessory || 'none'}
+              onChange={(e) => {
+                setSettings((prev) => ({
+                  ...prev,
+                  equippedAccessory: e.target.value as any,
+                }));
+                triggerNotification(`Costume changed to ${e.target.value}! ✨`);
+              }}
+              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-bold outline-none cursor-pointer"
+            >
+              <option value="none">🐱 Classic Naked Kitty</option>
+              <option value="santa">🎅 Christmas Holiday Santa Hat</option>
+              <option value="wizard">🧙 Starry Wizarding pointed Hat</option>
+              <option value="sunglasses">🕶️ Cool Pixel-Art Sunglasses</option>
+              <option value="bowtie">🎀 Cute Red Bowtie</option>
+              <option value="wings">👼 Angel Feather Wings</option>
+            </select>
+          </div>
+
+          {/* Productivity / Focus Mode Toggle */}
+          <label className="flex items-center justify-between p-2 mt-1 cursor-pointer transition select-none">
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-slate-700">Productivity Focus Mode</span>
+              <span className="text-[10px] text-slate-400 font-medium leading-tight">Curls up corner quietly to avoid distraction</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={settings.focusMode || false}
+              onChange={() => {
+                const nextFocus = !settings.focusMode;
+                setSettings((prev) => ({
+                  ...prev,
+                  focusMode: nextFocus,
+                }));
+                triggerNotification(nextFocus ? 'Focus Mode enabled! Kitty sits quietly in study mode.' : 'Focus Mode disabled! Kitty is active!');
+              }}
+              className="w-4 h-4 text-orange-600 bg-white border-slate-300 rounded accent-orange-500 focus:ring-orange-500"
+            />
+          </label>
+        </div>
+      </div>
+
       {/* File backup JSON IO */}
       <div className="flex gap-2.5 pt-4 border-t border-slate-100/80">
         <button

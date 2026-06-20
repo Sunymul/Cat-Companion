@@ -200,6 +200,39 @@ export default function CatSprite({
           fill="rgba(0,0,0,0.18)"
         />
 
+        {/* --- ACCESSORY: WINGS --- */}
+        {settings.equippedAccessory === 'wings' && state !== 'sleeping' && (
+          <g style={{
+            transform: `scale(${breathScale})`,
+            transformOrigin: '12px 14px'
+          }}>
+            {/* Left Wing */}
+            <path
+              d="M 6 15 C 3 12, 1 15, 3 19 C 4 18, 5 17, 6 16"
+              fill="#FFFFFF"
+              stroke="#CBD5E1"
+              strokeWidth="0.8"
+              style={{
+                transform: `rotate(${-tailAngle * 0.4}deg)`,
+                transformOrigin: '6px 16px',
+                transition: 'transform 0.1s linear'
+              }}
+            />
+            {/* Right Wing */}
+            <path
+              d="M 18 15 C 21 12, 23 15, 21 19 C 20 18, 19 17, 18 16"
+              fill="#FFFFFF"
+              stroke="#CBD5E1"
+              strokeWidth="0.8"
+              style={{
+                transform: `rotate(${tailAngle * 0.4}deg)`,
+                transformOrigin: '18px 16px',
+                transition: 'transform 0.1s linear'
+              }}
+            />
+          </g>
+        )}
+
         {/* --- TAIL --- */}
         <g style={{
           transform: `rotate(${tailAngle}deg)`,
@@ -329,6 +362,38 @@ export default function CatSprite({
           {/* Head Shape */}
           <ellipse cx="12" cy="10" rx="7.5" ry="5.8" fill={colors.fur} />
 
+          {/* ACCESSORIES ON HEAD */}
+          {settings.equippedAccessory === 'santa' && (
+            <g style={{ transform: 'translate(0, -1px)' }}>
+              {/* Santa hat cone */}
+              <polygon points="6,5 18,5 12,0" fill="#EF4444" />
+              {/* White fluff base */}
+              <rect x="7" y="4.2" width="10" height="2" rx="1" fill="#FFFFFF" />
+              {/* Pompom */}
+              <circle cx="12" cy="0" r="1.5" fill="#FFFFFF" />
+            </g>
+          )}
+
+          {settings.equippedAccessory === 'wizard' && (
+            <g style={{ transform: 'translate(0, -1px)' }}>
+              {/* Wizard hat cone */}
+              <polygon points="6,5 18,5 12,-2" fill="#6366F1" />
+              {/* Hat brim */}
+              <ellipse cx="12" cy="5.2" rx="6.5" ry="1.2" fill="#4F46E5" />
+              {/* Star on hat */}
+              <circle cx="12" cy="1.5" r="1" fill="#FBBF24" />
+            </g>
+          )}
+
+          {settings.equippedAccessory === 'bowtie' && (
+            <g style={{ transform: 'translate(12px, 13.5px)' }}>
+              {/* Cute red bowtie */}
+              <polygon points="-4,-2 0,0 -4,2" fill="#EF4444" />
+              <polygon points="4,-2 0,0 4,2" fill="#EF4444" />
+              <circle cx="0" cy="0" r="1.5" fill="#EF4444" />
+            </g>
+          )}
+
           {/* Calico / Tabby markings on head */}
           {settings.colorPreset === 'calico' && (
             <>
@@ -362,7 +427,19 @@ export default function CatSprite({
 
           {/* EYES */}
           <g>
-            {showClosedEyes ? (
+            {settings.equippedAccessory === 'sunglasses' && !showClosedEyes ? (
+              <g style={{ transform: 'translate(0, 0.5px)' }}>
+                {/* Sunglasses frame */}
+                <rect x="6" y="8.5" width="12" height="2" rx="0.5" fill="#111111" />
+                {/* Left Lens */}
+                <rect x="6.8" y="9.2" width="3.5" height="2" rx="0.8" fill="#1E1E1E" stroke="#111111" strokeWidth="0.5" />
+                {/* Right Lens */}
+                <rect x="13.7" y="9.2" width="3.5" height="2" rx="0.8" fill="#1E1E1E" stroke="#111111" strokeWidth="0.5" />
+                {/* Glint line */}
+                <line x1="7.5" y1="9.5" x2="8.5" y2="10.5" stroke="#FFFFFF" strokeWidth="0.5" />
+                <line x1="14.5" y1="9.5" x2="15.5" y2="10.5" stroke="#FFFFFF" strokeWidth="0.5" />
+              </g>
+            ) : showClosedEyes ? (
               // Closed (happy arc or sleeping flat line)
               <>
                 <path

@@ -28,6 +28,15 @@ class DesktopCat(QWidget):
         self.current_state = "falling"
         self.frame_index = 0
         self.direction_facing = 1 # 1 for Right, -1 for Left
+
+        # Speech bubble
+        self.current_bubble_text = None
+        self.bubble_timer = QTimer(self)
+        self.bubble_timer.setSingleShot(True)
+        self.bubble_timer.timeout.connect(self._clear_bubble)
+
+        # Virtual bug chasing for Hunters
+        self.bug_target = None
         
         # Setup Window attributes
         self.setWindowFlags(
@@ -60,6 +69,27 @@ class DesktopCat(QWidget):
         self.personality.set_preset(self.settings.personality)
         self.setWindowOpacity(self.settings.opacity)
 
+    def show_message(self, text):
+        self.current_bubble_text = text
+        self.bubble_timer.start(2800)
+        self.update()
+
+    def _clear_bubble(self):
+        self.current_bubble_text = None
+        self.update()
+
+    def pet_cat(self):
+        self.personality.record_interaction("pet")
+        self.current_state = "excited"
+        self.show_message(random.choice(["Purrr... ❤️", "Miaow! *nuzzle*", "Happy companion!"]))
+        self.update()
+
+    def feed_cat(self):
+        self.personality.record_interaction("feed")
+        self.current_state = "excited"
+        self.show_message(random.choice(["OM NOM NOM! 🐟", "Yummy fish!", "Yummm~"]))
+        self.update()
+
     def _physics_and_render_tick(self):
         """60 FPS physics computation, cursor gaze tracking, and window reposition constraints."""
         # Get active primary screen dimensions
@@ -74,8 +104,10 @@ class DesktopCat(QWidget):
         # Check for keyboard typing state activation
         if self.input_manager.consume_keyboard_activity():
             self.current_state = "typing"
+            self.personality.record_interaction("keystroke")
             # Jump on key-hits if energetic
-            if self.personality.energy > 60 and self.is_grounded:
+            is_high_energy = self.personality.dominant_trait == "hunter" or self.settings.personality == "orange"
+            if is_high_energy and self.is_grounded:
                 self.vy = -random.randint(6, 12)
                 self.is_grounded = False
 
@@ -89,27 +121,76 @@ class DesktopCat(QWidget):
         dy = mouse_y - cy
         distance = math.sqrt(dx*dx + dy*dy)
 
+        # Record passive time ticks
+        if self.frame_index == 0:
+            self.personality.record_interaction("tick")
+
         # Set face directions based on cursor orientation
         if dx > 10:
             self.direction_facing = 1
         elif dx < -10:
             self.direction_facing = -1
 
-        # Chase mechanics based on curiosity and energy
-        if self.current_state == "chasing_cursor" and distance > 40:
-            speed_factor = 2.0 * self.settings.speed
-            # Normalize vector to target
-            self.vx = (dx / distance) * speed_factor
-            if dy < -40 and self.is_grounded:
-                self.vy = -6.0 # Jump to catch cursor
+        # Determine personality dynamics
+        dominant = self.personality.dominant_trait
+        speed_modifier = 0.55 if dominant == "lazy" else (1.35 if dominant == "hunter" else 1.0)
+        base_speed = 2.0 * self.settings.speed * speed_modifier
+
+        # Special personality traits: Fleeing / Bug chasing checks
+        shy_fleeing = False
+        bug_chasing = False
+
+        if dominant == "shy" and distance < 160 and distance > 5:
+            shy_fleeing = True
+            # Move in opposite direction of mouse
+            self.current_state = "walking"
+            self.vx = -(dx / distance) * base_speed * 1.5
+            if self.is_grounded and dy > 10:
+                self.vy = -4.0
                 self.is_grounded = False
-        elif self.current_state == "walking":
-            # Idle wanderings
-            if abs(self.vx) < 0.2:
-                self.vx = self.direction_facing * (0.8 * self.settings.speed)
-        elif self.current_state in ["sleeping", "sitting", "grooming", "idle"]:
-            # Slide to stop on inactive states
-            pass
+            if random.random() < 0.05:
+                self.show_message(random.choice(["*hides*", "Nervous...", "Don't look... >////<"]))
+
+        elif dominant == "attention_seeker" and distance > 160 and random.random() < 0.015 and self.current_state != "chasing_cursor":
+            self.current_state = "chasing_cursor"
+            if random.random() < 0.05:
+                self.show_message(random.choice(["Watch me! ✨", "Follow you! ❤️", "Meow!"]))
+
+        elif dominant == "hunter" and not (self.current_state == "chasing_cursor" and distance < 350):
+            if not self.bug_target:
+                if random.random() < 0.006:
+                    self.bug_target = QPoint(random.randint(50, max_w), random.randint(50, max_h))
+                    self.show_message("Got a bug! 🐞")
+            else:
+                bx = self.bug_target.x() - cx
+                by = self.bug_target.y() - cy
+                b_dist = math.sqrt(bx*bx + by*by)
+                if b_dist > 25:
+                    bug_chasing = True
+                    self.vx = (bx / b_dist) * base_speed * 1.5
+                    if by < -30 and self.is_grounded:
+                        self.vy = -6.0
+                        self.is_grounded = False
+                else:
+                    self.bug_target = None
+                    self.vx = 0
+                    self.current_state = "excited"
+                    self.show_message("Got it! 🦟")
+
+        # Core movement resolution matching active states
+        if not shy_fleeing and not bug_chasing:
+            if self.current_state == "chasing_cursor" and distance > 40:
+                self.vx = (dx / distance) * base_speed
+                if dy < -40 and self.is_grounded:
+                    self.vy = -6.0 # Jump to catch cursor
+                    self.is_grounded = False
+            elif self.current_state == "walking":
+                # Idle wanderings
+                if abs(self.vx) < 0.2:
+                    self.vx = self.direction_facing * (0.8 * self.settings.speed * speed_modifier)
+            elif self.current_state in ["sleeping", "sitting", "grooming", "idle"]:
+                # Slide to stop on inactive states
+                pass
 
         # Parse physical position changes through standard solver
         current_pos = (self.x, self.y)
@@ -270,4 +351,41 @@ class DesktopCat(QWidget):
         # Right Paw
         painter.drawEllipse(QRectF(pad + cw * 0.62, pad * 1.5 + ch * 0.65 - paw_offset_y, paw_w, paw_h))
         
+        # Draw Speech Bubble overlay if active
+        if self.current_bubble_text:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+            
+            # Setup bubble text font
+            font = QFont("Segoe UI", 9)
+            font.setBold(True)
+            painter.setFont(font)
+            
+            # Calculate bubble sizes
+            text = self.current_bubble_text
+            metrics = painter.fontMetrics()
+            rect = metrics.boundingRect(text)
+            
+            bw = rect.width() + 16
+            bh = rect.height() + 10
+            
+            bx = (width - bw) / 2
+            by = pad * 0.1 # Draw near the top of the widget
+            
+            # Draw speech pill body
+            painter.setPen(QPen(QColor(249, 115, 22), 1))
+            painter.setBrush(QBrush(QColor(255, 255, 255)))
+            painter.drawRoundedRect(QRectF(bx, by, bw, bh), 6.0, 6.0)
+            
+            # Draw bubble small triangle tail
+            tail_poly = [
+                QPoint(int(width / 2 - 4), int(by + bh)),
+                QPoint(int(width / 2 + 4), int(by + bh)),
+                QPoint(int(width / 2), int(by + bh + 4))
+            ]
+            painter.drawPolygon(tail_poly)
+            
+            # Draw bubble text inside
+            painter.setPen(QPen(QColor(30, 30, 30), 1))
+            painter.drawText(QRectF(bx, by, bw, bh), Qt.AlignmentFlag.AlignCenter, text)
+
         painter.end()

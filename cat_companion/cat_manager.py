@@ -71,3 +71,14 @@ class CatManager:
                     cat.current_state = "walking"
                     cat.direction_facing = sibling.direction_facing
                     cat.vx = sibling.vx
+
+    def pet_all(self):
+        """Dispatches petting triggers to all active cats."""
+        for cat in self.cats:
+            cat.pet_cat()
+
+    def feed_all(self):
+        """Dispatches feeding triggers to all active cats."""
+        for cat in self.cats:
+            cat.feed_cat()
+
