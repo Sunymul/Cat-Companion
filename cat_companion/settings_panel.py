@@ -203,6 +203,12 @@ class SettingsPanel(QWidget):
         self.startup_check.stateChanged.connect(self._on_startup_changed)
         sys_layout.addWidget(self.startup_check)
 
+        # Chase Mode Checkbox
+        self.chase_check = QCheckBox("Curious Cursor Chase Mode")
+        self.chase_check.setChecked(self.settings.chase_mode)
+        self.chase_check.stateChanged.connect(self._on_chase_changed)
+        sys_layout.addWidget(self.chase_check)
+
         sys_group.setLayout(sys_layout)
         layout.addWidget(sys_group)
 
@@ -304,6 +310,10 @@ class SettingsPanel(QWidget):
         consent = self.startup_check.isChecked()
         self.settings.run_at_startup = consent
         self.settings.apply_startup_registry()
+        self._commit_and_notify()
+
+    def _on_chase_changed(self, val):
+        self.settings.chase_mode = self.chase_check.isChecked()
         self._commit_and_notify()
 
     def _commit_and_notify(self):

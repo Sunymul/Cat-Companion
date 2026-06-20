@@ -12,6 +12,7 @@ class CompanionSettings:
         self.enable_sound = True
         self.sound_volume = 0.5
         self.run_at_startup = False
+        self.chase_mode = True
         
     @staticmethod
     def get_settings_path():
@@ -44,6 +45,7 @@ class CompanionSettings:
                     settings.enable_sound = bool(data.get("enable_sound", settings.enable_sound))
                     settings.sound_volume = max(0.0, min(1.0, data.get("sound_volume", settings.sound_volume)))
                     settings.run_at_startup = bool(data.get("run_at_startup", settings.run_at_startup))
+                    settings.chase_mode = bool(data.get("chase_mode", settings.chase_mode))
             except Exception:
                 # Fallback to defaults on file corruption (Security & Resilience Guideline)
                 pass
@@ -59,7 +61,8 @@ class CompanionSettings:
             "personality": self.personality,
             "enable_sound": self.enable_sound,
             "sound_volume": self.sound_volume,
-            "run_at_startup": self.run_at_startup
+            "run_at_startup": self.run_at_startup,
+            "chase_mode": self.chase_mode
         }
         try:
             with open(path, "w", encoding="utf-8") as f:

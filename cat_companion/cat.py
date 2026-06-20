@@ -95,7 +95,7 @@ class DesktopCat(QWidget):
         # Get active primary screen dimensions
         screen = self.screen()
         if screen:
-            screen_geom = screen.geometry()
+            screen_geom = screen.availableGeometry()
             max_w = screen_geom.width() - self.width()
             max_h = screen_geom.height() - self.height()
         else:
@@ -117,9 +117,15 @@ class DesktopCat(QWidget):
         
         cx = self.x + self.width() / 2
         cy = self.y + self.height() / 2
+        
+        # In PyQt, window pos + widget size = physical widget location.
+        # QCursor provides absolute screen coordinates matching window placement.
         dx = mouse_x - cx
         dy = mouse_y - cy
         distance = math.sqrt(dx*dx + dy*dy)
+        
+        if self.settings.chase_mode and distance > 50 and distance < 800 and self.current_state not in ["sleeping", "typing"]:
+            self.current_state = "chasing_cursor"
 
         # Record passive time ticks
         if self.frame_index == 0:
@@ -180,9 +186,9 @@ class DesktopCat(QWidget):
         # Core movement resolution matching active states
         if not shy_fleeing and not bug_chasing:
             if self.current_state == "chasing_cursor" and distance > 40:
-                self.vx = (dx / distance) * base_speed
-                if dy < -40 and self.is_grounded:
-                    self.vy = -6.0 # Jump to catch cursor
+                self.vx = (dx / distance) * base_speed * 1.5
+                if dy < -40 and self.is_grounded and random.random() < 0.05:
+                    self.vy = -6.0 # Occasional jump to catch cursor
                     self.is_grounded = False
             elif self.current_state == "walking":
                 # Idle wanderings

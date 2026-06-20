@@ -1,7 +1,7 @@
 import threading
 import time
 from pynput import keyboard
-import pyautogui
+from PyQt6.QtGui import QCursor
 
 class InputManager:
     def __init__(self, fps_interval=1/60.0):
@@ -46,7 +46,8 @@ class InputManager:
         """Standard polling loop tracking mouse coordinates, velocity vector, and idle state."""
         while self.is_running:
             try:
-                x, y = pyautogui.position()
+                pos = QCursor.pos()
+                x, y = pos.x(), pos.y()
                 self.cursor_x, self.cursor_y = x, y
                 
                 # Check delta changes for hover velocity direction
