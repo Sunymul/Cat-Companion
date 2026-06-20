@@ -37,7 +37,7 @@ export default function SimulatedDesktop({
 
   // Cat position state
   const [catPos, setCatPos] = useState({ x: 120, y: 150 });
-  const [targetPos, setTargetPos] = useState({ x: 120, y: 150 });
+  const targetPosRef = useRef({ x: 120, y: 150 });
   const [lookAngle, setLookAngle] = useState(0);
   const [lookStrength, setLookStrength] = useState(0);
 
@@ -504,60 +504,34 @@ export default function SimulatedDesktop({
         // Stage 3: Fullscreen presentation mode simulated
         if (isFullscreenSimulated) {
           setCatState('sleeping');
-          // Quiet hiding offscreen, no distracting speech bubbles
           return;
         }
 
-        // Stage 2: Intense Typing Flow detected (KPM > 100)
-        if (currentKPM > 100) {
-          setCatState('sleeping');
+        // Active Work / Moderate typing detected
+        if (currentKPM >= 1) {
           setLastTypingState('typing');
-          // Absolutely silent for respectful deep work
-          return;
-        }
-
-        // Stage 1: Active Work / Moderate typing (KPM between 15 and 100)
-        if (currentKPM >= 15) {
-          setCatState('idle');
-          setLastTypingState('typing');
-          
-          // Occasional very quiet, supportive focus feedback
-          if (Math.random() < 0.12) {
-            const focusEncouragements = [
-              'Shosh... focus-mode active 📚',
-              'You are doing great! 💻🐾',
-              'Comfortable silence... ☕',
-              'Type type type, you are in the zone! 🚀',
-              'Ssshh... studying in quiet harmony 🤫',
-            ];
-            triggerMeowText(focusEncouragements[Math.floor(Math.random() * focusEncouragements.length)]);
+          // If we just got here, maybe a tiny ear twitch or settle in
+          if (catState !== 'sleeping') {
+             // Let it walk to the corner (handled in physics loop)
           }
-          return;
-        }
-
-        // Pause/Inactivity Detected: Work Buddy Mode Wakeup triggers!
-        if (lastTypingState === 'typing') {
-          // Trigger rare event: the cat wakes up right as you stop typing to greet you!
-          setCatState('excited');
-          const buddyPhrases = [
-            'Finished already? Welcome back! 🥰🐾',
-            'Great session! How about a little head scratch? ❤️',
-            'Take a breath, developer! We did it! 🎉',
-            'Pause detected! Rest those hands! 👐☕',
-          ];
-          triggerMeowText(buddyPhrases[Math.floor(Math.random() * buddyPhrases.length)]);
+        } else {
+          // Inactive
           setLastTypingState('none');
-          return;
         }
 
-        // Stage 4: Long Work Session simulated milestones (Adorable Stretch every 40s of study)
-        if (focusTimerSeconds > 0 && focusTimerSeconds % 40 === 0) {
+        // Stage 4: Long Work Session simulated milestones (Adorable Stretch every 60m ~ 3600s)
+        // No speech bubble. No sound. Just a tiny animation.
+        if (focusTimerSeconds > 0 && focusTimerSeconds % 3600 === 0) {
           setCatState('excited');
-          triggerMeowText('Streeeeeetch! Study milestone achieved! Hydrate yourself! 🥤🔋🐾');
+          // Stretch and go back to sleep purely through animation
+          setTimeout(() => setCatState('sleeping'), 2000);
           return;
         }
 
-        // Default Focus idling state: sleep quietly in the study corner
+        // Default Focus idling state: sleep quietly in the study corner respecting the flow
+        if (catPos.x > 500 && catPos.y > 300) { 
+           setCatState('sleeping');
+        }
         setCatState('sleeping');
         return;
       }
@@ -641,39 +615,41 @@ export default function SimulatedDesktop({
           // Reset sleep counts if awake
           setSleepCountTimer(0);
 
-          // Check late night owl meow greeting (after 8 PM / 20:00)
-          const hour = new Date().getHours();
-          const isLate = hour >= 20 || hour < 5;
-
-          // Perform random idle actions if awake
+          // Perform random idle micro-behavior body language WITHOUT speech bubbles
           const rng = Math.random();
-          if (isLate && rng < 0.25) {
-            triggerMeowText('Late night coding buddy? 🌙💻👀');
-          } else if (rng < 0.12) {
+          if (rng < 0.12) {
             // Stretch
             setCatState('excited');
-            triggerMeowText('Streeeeetch... 🐾');
+            triggerMeowAudio('stretch_squeak');
             setTimeout(() => setCatState('idle'), 1300);
           } else if (rng < 0.35) {
-            // Wander looking around
+            // Subtle looking around (Micro-behaviors)
             const looks: CatState[] = ['look-left', 'look-right', 'look-up', 'look-down'];
             setCatState(looks[Math.floor(Math.random() * looks.length)]);
-            setTimeout(() => setCatState('idle'), 1200);
+            setTimeout(() => setCatState('idle'), 2500);
           } else if (rng < 0.45 && hunger > 75) {
-            triggerMeowText('My tummy is empty... 🐟 *mew*');
+            triggerMeowAudio('meow'); // Actual meow for hunger
+            triggerMeowText('Hungry... 🐟');
           } else {
             setCatState('idle');
           }
 
-          // Trigger Rare events with a 6% chance on Tick
-          if (Math.random() < 0.06 && rareEvent === 'none') {
+          // Trigger realistic ambient sound based on feline behavior ratios
+          if (Math.random() < 0.25) { // 25% chance every 4s idle tick to make a tiny sound
+            const soundRng = Math.random();
+            if (soundRng < 0.45) triggerMeowAudio('purr');
+            else if (soundRng < 0.70) triggerMeowAudio('trill');
+            else if (soundRng < 0.90) triggerMeowAudio('mrrp');
+            else if (soundRng < 0.98) triggerMeowAudio('stretch_squeak');
+            else triggerMeowAudio('meow');
+          }
+
+          // Trigger Rare events with a 6% chance on Tick (only if not in focus mode)
+          if (Math.random() < 0.06 && rareEvent === 'none' && !settings.focusMode) {
             const ev = Math.random() < 0.5 ? 'butterfly' : 'box';
             setRareEvent(ev);
             if (ev === 'butterfly') {
               setButterflyPos({ x: 100 + Math.random() * 200, y: 80 + Math.random() * 120 });
-              triggerMeowText('A butterfly! 🦋 Chase!!');
-            } else {
-              triggerMeowText('What is that cardboard box? 📦👀');
             }
           }
         }
@@ -697,7 +673,7 @@ export default function SimulatedDesktop({
     const safeX = Math.max(10, Math.min(rect.width - 10, x));
     const safeY = Math.max(10, Math.min(rect.height - 10, y));
 
-    setTargetPos({ x: safeX, y: safeY });
+    targetPosRef.current = { x: safeX, y: safeY };
 
     // Handle floating window drag helper
     if (windowDragging) {
@@ -706,8 +682,8 @@ export default function SimulatedDesktop({
       setWindowPos({ x: boundedWx, y: boundedWy });
     }
 
-    // Wake up if asleep
-    if (catState === 'sleeping') {
+    // Wake up if asleep (Only if not in focus mode)
+    if (catState === 'sleeping' && !settings.focusMode) {
       setCatState('idle');
       setLastActivity(Date.now());
       triggerMeowText('Ah! Awake!');
@@ -725,7 +701,7 @@ export default function SimulatedDesktop({
       setMouseVelocity(velocity);
 
       // Rapid movement surprise reaction triggers
-      if (velocity > 2.8 && catState !== 'surprised' && catState !== 'sleeping') {
+      if (velocity > 2.8 && catState !== 'surprised' && catState !== 'sleeping' && !settings.focusMode) {
         const soundThreshold = settings.personality === 'hyperactive' ? 1.5 : 2.8;
         if (velocity > soundThreshold) {
           setCatState('surprised');
@@ -834,8 +810,8 @@ export default function SimulatedDesktop({
       }
 
       // Determine active chase target
-      let targetX = targetPos.x;
-      let targetY = targetPos.y;
+      let targetX = targetPosRef.current.x;
+      let targetY = targetPosRef.current.y;
       let targetSource: 'cursor' | 'food' | 'butterfly' | 'box' | 'window' = 'cursor';
 
       if (foodItems.length > 0) {
@@ -939,7 +915,6 @@ export default function SimulatedDesktop({
     return () => clearInterval(pInterval);
   }, [
     catPos,
-    targetPos,
     foodItems,
     rareEvent,
     butterflyPos,
@@ -957,8 +932,8 @@ export default function SimulatedDesktop({
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     // Drop fish random near cursor
-    const rx = targetPos.x + (Math.random() * 80 - 40);
-    const ry = targetPos.y + (Math.random() * 80 - 40);
+    const rx = targetPosRef.current.x + (Math.random() * 80 - 40);
+    const ry = targetPosRef.current.y + (Math.random() * 80 - 40);
 
     const safeRx = Math.max(30, Math.min(rect.width - 30, rx));
     const safeRy = Math.max(30, Math.min(rect.height - 30, ry));
@@ -1367,7 +1342,11 @@ export default function SimulatedDesktop({
                             <span className="font-extrabold capitalize text-slate-800">{settings.colorPreset} Shorthair</span>
                           </div>
                           <div className="text-right space-y-0.5">
-                            <span className="text-slate-400 block">Adopted On</span>
+                            <span className="text-slate-400 block">Days Together</span>
+                            <span className="font-extrabold text-orange-550 text-lg font-mono">
+                              {Math.max(1, Math.floor((Date.now() - new Date(adoptedDate).getTime()) / (1000 * 3600 * 24)))}
+                            </span>
+                            <span className="text-slate-400 block pt-1">Adopted On</span>
                             <span className="font-extrabold text-slate-800 font-mono">{adoptedDate}</span>
                           </div>
                         </div>
